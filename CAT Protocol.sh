@@ -68,11 +68,12 @@ start_mint_cat() {
         
         # Check if cooldown period has passed
         if [ $((CURRENT_TIME - LAST_MINT_TIME)) -ge $COOLDOWN ]; then
-            # Get latest UTXO
-            LATEST_UTXO=$(sudo yarn cli wallet utxos | grep -oP '"txid": "\K[^"]*' | tail -n 1)
+            # Get latest UTXO from wallet balances
+            LATEST_UTXO=$(sudo yarn cli wallet balances | grep -oP '"txid": "\K[^"]*' | tail -n 1)
             
             if [ -n "$LATEST_UTXO" ]; then
-                command="sudo yarn cli mint -i ${LATEST_UTXO}_0 5 --fee-rate $(curl -s https://explorer.unisat.io/fractal-mainnet/api/bitcoin-info/fee | jq '\''.data.fastestFee'\'')"
+                FEE_RATE=$(curl -s https://explorer.unisat.io/fractal-mainnet/api/bitcoin-info/fee | jq '\''.data.fastestFee'\'')
+                command="sudo yarn cli mint -i ${LATEST_UTXO}_0 5 --fee-rate $FEE_RATE"
                 
                 echo "Executing: $command"
                 eval $command
