@@ -60,39 +60,16 @@ start_mint_cat() {
     cd ~/cat-token-box/packages/cli
     echo '#!/bin/bash
 
-    COOLDOWN=300  # 5 minutes cooldown
-    LAST_MINT_TIME=0
-
     while true; do
-        CURRENT_TIME=$(date +%s)
+        command="sudo yarn cli mint -i 45ee725c2c5993b3e4d308842d87e973bf1951f5f7a804b21e4dd964ecd12d6b_0 5 --fee-rate $(curl -s https://explorer.unisat.io/fractal-mainnet/api/bitcoin-info/fee | jq '\''.data.fastestFee'\'')"
         
-        # Check if cooldown period has passed
-        if [ $((CURRENT_TIME - LAST_MINT_TIME)) -ge $COOLDOWN ]; then
-            # Get latest UTXO from wallet balances
-            LATEST_UTXO=$(sudo yarn cli wallet balances | grep -oP '"txid": "\K[^"]*' | tail -n 1)
-            
-            if [ -n "$LATEST_UTXO" ]; then
-                FEE_RATE=$(curl -s https://explorer.unisat.io/fractal-mainnet/api/bitcoin-info/fee | jq '\''.data.fastestFee'\'')
-                command="sudo yarn cli mint -i ${LATEST_UTXO}_0 5 --fee-rate $FEE_RATE"
-                
-                echo "Executing: $command"
-                eval $command
+        eval $command
 
-                if [ $? -eq 0 ]; then
-                    echo "Mint successful. Waiting for cooldown period..."
-                    LAST_MINT_TIME=$CURRENT_TIME
-                else
-                    echo "Mint failed. Retrying in 60 seconds..."
-                    sleep 60
-                fi
-            else
-                echo "No available UTXOs. Waiting for 60 seconds..."
-                sleep 60
-            fi
+        if [ $? -ne 0 ]; then
+            echo "Command execution failed, retrying in 60 seconds"
+            sleep 60
         else
-            WAIT_TIME=$((COOLDOWN - (CURRENT_TIME - LAST_MINT_TIME)))
-            echo "Cooldown period active. Waiting for $WAIT_TIME seconds..."
-            sleep $WAIT_TIME
+            sleep 1
         fi
     done' > ~/cat-token-box/packages/cli/mint_script.sh
     chmod +x ~/cat-token-box/packages/cli/mint_script.sh
